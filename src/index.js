@@ -81,6 +81,10 @@ export default class Zeroconf extends EventEmitter {
     RNZeroconf.scan(type, protocol, domain)
   }
 
+  register (type = 'http', protocol = 'tcp', domain = 'local.') {
+    RNZeroconf.register(type, protocol, domain);
+  }
+
   /**
    * Stop current scan if any
    */

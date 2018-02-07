@@ -3,6 +3,7 @@ package com.balthazargronon.RCTZeroconf;
 import android.content.Context;
 import android.net.nsd.NsdManager;
 import android.net.nsd.NsdServiceInfo;
+import android.util.Log;
 
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContext;
@@ -26,6 +27,8 @@ import java.io.UnsupportedEncodingException;
  */
 public class ZeroconfModule extends ReactContextBaseJavaModule {
 
+
+
     public static final String EVENT_START = "RNZeroconfStart";
     public static final String EVENT_STOP = "RNZeroconfStop";
     public static final String EVENT_ERROR = "RNZeroconfError";
@@ -42,6 +45,7 @@ public class ZeroconfModule extends ReactContextBaseJavaModule {
 
     protected NsdManager mNsdManager;
     protected NsdManager.DiscoveryListener mDiscoveryListener;
+    protected NsdManager.RegistrationListener mRegistrationListener;
 
     public ZeroconfModule(ReactApplicationContext reactContext) {
         super(reactContext);
@@ -53,12 +57,59 @@ public class ZeroconfModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void scan(String type, String protocol, String domain) {
+    public void register(String type, String protocol, String domain) {
+
         if (mNsdManager == null) {
             mNsdManager = (NsdManager) getReactApplicationContext().getSystemService(Context.NSD_SERVICE);
         }
 
-        this.stop();
+        mRegistrationListener = new NsdManager.RegistrationListener() {
+
+            @Override
+            public void onServiceRegistered(NsdServiceInfo NsdServiceInfo) {
+                // Save the service name. Android may have changed it in order to
+                // resolve a conflict, so update the name you initially requested
+                // with the name Android actually used.
+                //mServiceName = NsdServiceInfo.getServiceName();
+                Log.i("ReactNative", "Service registered");
+            }
+
+            @Override
+            public void onRegistrationFailed(NsdServiceInfo serviceInfo, int errorCode) {
+                // Registration failed! Put debugging code here to determine why.
+            }
+
+            @Override
+            public void onServiceUnregistered(NsdServiceInfo arg0) {
+                // Service has been unregistered. This only happens when you call
+                // NsdManager.unregisterService() and pass in this listener.
+            }
+
+            @Override
+            public void onUnregistrationFailed(NsdServiceInfo serviceInfo, int errorCode) {
+                // Unregistration failed. Put debugging code here to determine why.
+            }
+        };
+
+//        String serviceType = String.format("_ht\cltp._tcp.");
+        NsdServiceInfo serviceInfo = new NsdServiceInfo();
+        serviceInfo.setServiceName("NsdChat");
+        serviceInfo.setServiceType("_http._tcp.");
+        serviceInfo.setPort(9999);
+
+        mNsdManager.registerService(serviceInfo, NsdManager.PROTOCOL_DNS_SD, mRegistrationListener);
+    }
+
+    @ReactMethod
+    public void scan(String type, String protocol, String domain) {
+
+        Log.i("YO", "Wesh wesh LOGGING TIME!");
+
+        if (mNsdManager == null) {
+            mNsdManager = (NsdManager) getReactApplicationContext().getSystemService(Context.NSD_SERVICE);
+        }
+
+//        this.stop();
 
         mDiscoveryListener = new NsdManager.DiscoveryListener() {
             @Override
@@ -75,6 +126,7 @@ public class ZeroconfModule extends ReactContextBaseJavaModule {
 
             @Override
             public void onDiscoveryStarted(String serviceType) {
+                Log.i("ReactNative", "EVENT START!");
                 sendEvent(getReactApplicationContext(), EVENT_START, null);
             }
 
@@ -85,6 +137,7 @@ public class ZeroconfModule extends ReactContextBaseJavaModule {
 
             @Override
             public void onServiceFound(NsdServiceInfo serviceInfo) {
+                Log.i("ReactNative", "EVENT FOUND!");
                 WritableMap service = new WritableNativeMap();
                 service.putString(KEY_SERVICE_NAME, serviceInfo.getServiceName());
 
